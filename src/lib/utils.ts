@@ -9,6 +9,5 @@ export const toBase64 = async (file: File): Promise<string> => new Promise((reso
   const reader = new FileReader();
   reader.readAsDataURL(file);
   reader.onload = () => resolve((reader.result as string)?.split(",")[1]);
-  console.log(reader.result)
   reader.onerror = reject;
 })

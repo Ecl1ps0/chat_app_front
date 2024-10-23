@@ -53,13 +53,12 @@ export function useChatSocket(currentUserId: string) {
     };
 
     // Send message to the server
-    const sendMessage = (newMessage: string, imageIds: string[]) => {
+    const sendMessage = (newMessage: string, imageCodes: string[]) => {
         if (websocket?.readyState === WebSocket.OPEN) {
-            console.log(1)
             const messageDTO: IMessageDTO = {
                 message: newMessage,
                 sender_id: currentUserId,
-                images: imageIds
+                images: imageCodes
             };
             websocket.send(JSON.stringify(messageDTO));
         }

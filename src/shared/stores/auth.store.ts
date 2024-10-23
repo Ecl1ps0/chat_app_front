@@ -18,6 +18,10 @@ export const useAuth = defineStore('auth', () => {
         return expTime < currentTime
     }
 
+    const logout = (): void => {
+        localStorage.clear()
+    }
+
     watch(token, (newToken, oldToken) => {
         if (newToken) {
             localStorage.setItem('auth_token', newToken);
@@ -28,5 +32,5 @@ export const useAuth = defineStore('auth', () => {
         console.log('Token changed from', oldToken, 'to', newToken);
     });
 
-    return { token, setToken, isAuthorized, isExpired };
+    return { token, setToken, isAuthorized, isExpired, logout };
 }) 

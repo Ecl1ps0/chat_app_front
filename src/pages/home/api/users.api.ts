@@ -1,4 +1,4 @@
-export const getAvailbleUsers = async (token: string) => {
+export const getAvailableUsers = async (token: string) => {
     const result = await fetch("http://127.0.0.1:8080/api/user/available-users",
         {
             headers: {Authorization: `Bearer ${token}`}

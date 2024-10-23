@@ -2,7 +2,7 @@
 import { IUser } from '@/entities/user.entity';
 import { onMounted, ref, TransitionGroup, watch, nextTick } from 'vue';
 import { useAuth } from '@/shared/stores/auth.store';
-import { getAvailbleUsers } from '../api/users.api';
+import { getAvailableUsers } from '../api/users.api';
 import { MessageSquareIcon, SendIcon, ImageIcon, XIcon } from 'lucide-vue-next';
 import { router } from '@/pages/router/Router';
 import { jwtDecode } from 'jwt-decode';
@@ -14,7 +14,6 @@ const users = ref<IUser[]>([]);
 const newMessage = ref('');
 const selectedFiles = ref<File[]>([]);
 const isUploading = ref(false);
-const imageUrls = ref<{ [messageId: string]: string[] }>({});
 const { token, isAuthorized, isExpired } = useAuth();
 
 const currentUser: IUser = jwtDecode<{ exp: number; user: IUser }>(token!).user;
@@ -67,7 +66,7 @@ onMounted(async () => {
   if (!isAuthorized() || isExpired()) {
     router.push("/auth");
   } else {
-    users.value = await getAvailbleUsers(token!);
+    users.value = await getAvailableUsers(token!);
   }
 });
 
@@ -200,8 +199,10 @@ const leave = (el: Element, done: () => void) => {
             </div>
             <div class="flex-1">
               <p>{{ message.text_content }}</p>
-              <div v-if="message.image_content?.length > 0" class="mt-2 grid grid-cols-2 gap-2">
-                <img v-for="(image, imgIndex) in message.image_content" :key="imgIndex" :src="image" alt="Uploaded image" class="rounded-md max-w-full h-auto"/>
+              <div v-if="message.image_content?.length > 0" class="mt-2 flex flex-wrap gap-4">
+                <div v-for="(image, imgIndex) in message.image_content" :key="imgIndex" class="w-1/4">
+                  <img :src="image" alt="Uploaded image" class="rounded-md w-full h-auto"/>
+                </div>
               </div>
               <span class="text-xs text-muted-foreground mt-1 block">
                 {{ new Date(message.timestamp * 1000).toLocaleString("en-GB", {

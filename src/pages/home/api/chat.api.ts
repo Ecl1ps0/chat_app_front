@@ -11,7 +11,6 @@ const parseMessageData = (message: { id: string; message: string; images: string
         sender: message.user_from,
         timestamp: message.created_at,
     };
-    console.log(newMessage)
     return newMessage;
 };
 

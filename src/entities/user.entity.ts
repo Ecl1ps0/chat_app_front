@@ -3,5 +3,5 @@ export interface IUser {
   username: string
   bio?: string
   email?: string
-  profilePicture?: string
+  profile_picture?: string
 }

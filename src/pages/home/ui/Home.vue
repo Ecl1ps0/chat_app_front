@@ -142,7 +142,8 @@ const leave = (el: Element, done: () => void) => {
           :class="{ 'bg-primary/10': selectedUser?.id === user.id }"
         >
           <div class="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold mr-3">
-            {{ user.username.charAt(0) }}
+            <img v-if="user.profile_picture" :src="`http://127.0.0.1:8080/api/image?id=${user.profile_picture}`" :alt="user.username" class="w-full h-full object-center rounded-full">
+            <p v-else>{{ user.username.charAt(0) }}</p>
           </div>
           <div>
             <p class="font-medium">{{ user.username }}</p>
@@ -155,7 +156,8 @@ const leave = (el: Element, done: () => void) => {
     <main class="flex-1 flex flex-col">
       <header v-if="selectedUser" class="border-b p-4 flex items-center">
         <div class="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold mr-3">
-          {{ selectedUser.username.charAt(0) }}
+          <img v-if="selectedUser.profile_picture" :src="`http://127.0.0.1:8080/api/image?id=${selectedUser.profile_picture}`" :alt="selectedUser.username" class="w-full h-full object-center rounded-full">
+          <p v-else>{{ selectedUser.username.charAt(0) }}</p>
         </div>
         <div>
           <h2 class="font-semibold">{{ selectedUser.username }}</h2>
@@ -195,13 +197,15 @@ const leave = (el: Element, done: () => void) => {
               'font-semibold',
               message.sender === currentUser.id ? 'bg-primary-foreground text-primary' : 'bg-primary text-primary-foreground'
             ]">
-              {{ message.sender === currentUser.id ? 'You' : selectedUser.username.charAt(0) }}
+              <p v-if="message.sender === currentUser.id">You</p>
+              <p v-else-if="!selectedUser.profile_picture">{{selectedUser.username.charAt(0)}}</p>
+              <img v-else :src="`http://127.0.0.1:8080/api/image?id=${selectedUser.profile_picture}`" :alt="selectedUser.username" class="w-full h-full object-center rounded-full">
             </div>
             <div class="flex-1">
               <p>{{ message.text_content }}</p>
               <div v-if="message.image_content?.length > 0" class="mt-2 flex flex-wrap gap-4">
                 <div v-for="(image, imgIndex) in message.image_content" :key="imgIndex" class="w-1/4">
-                  <img :src="image" alt="Uploaded image" class="rounded-md w-full h-auto"/>
+                  <img :src="image" alt="Uploaded image" loading="lazy" class="rounded-md w-full h-auto"/>
                 </div>
               </div>
               <span class="text-xs text-muted-foreground mt-1 block">

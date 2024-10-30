@@ -13,13 +13,14 @@ export const useAuth = defineStore('auth', () => {
     const isExpired = (): boolean => {
         if (!token.value) return true;
 
-        const expTime = jwtDecode(token.value).exp!
+        const expTime = jwtDecode(token.value).exp!;
         const currentTime = Math.floor(Date.now() / 1000);
-        return expTime < currentTime
+        return expTime < currentTime;
     }
 
     const logout = (): void => {
-        localStorage.clear()
+        token.value = null;
+        localStorage.clear();
     }
 
     watch(token, (newToken, oldToken) => {

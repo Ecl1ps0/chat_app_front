@@ -1,7 +1,7 @@
 import { IUserUpdateDTO } from "@/entities/userUpdateDTO.entity"
 
 export const getAvailableUsers = async (token: string) => {
-    const result = await fetch("http://127.0.0.1:8080/api/user/available-users",
+    const result = await fetch("https://chat-app-3yg1.onrender.com/api/user/available-users",
         {
             headers: {Authorization: `Bearer ${token}`}
         }
@@ -11,7 +11,7 @@ export const getAvailableUsers = async (token: string) => {
 }
 
 export const updateUser = async (token: string, userData: IUserUpdateDTO) => {
-    const result = await fetch(`http://127.0.0.1:8080/api/update/user?userId=${userData.id}`,
+    const result = await fetch(`https://chat-app-3yg1.onrender.com/api/update/user?userId=${userData.id}`,
         {
             method: 'PUT',
             headers: {'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json'},

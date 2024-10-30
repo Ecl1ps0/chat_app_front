@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, nextTick } from 'vue';
+import { ref, onMounted, watch, nextTick, computed } from 'vue';
 import { useAuth } from '@/shared/stores/auth.store';
 import { getAvailableUsers, updateUser } from '../api/users.api';
-import { MessageSquareIcon, SendIcon, ImageIcon, XIcon, MenuIcon, LogOutIcon } from 'lucide-vue-next';
+import { MessageSquareIcon, SendIcon, ImageIcon, XIcon, MenuIcon, LogOutIcon, SearchIcon } from 'lucide-vue-next';
 import { router } from '@/pages/router/Router';
 import { useChatSocket } from '../api/chat.api';
 import { toBase64 } from '@/lib/utils';
@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from '@/components/ui/sheet';
 import { IUser } from '@/entities/user.entity';
 import { jwtDecode } from 'jwt-decode';
+import Input from '@/components/ui/input/Input.vue';
 
 const users = ref<IUser[]>([]);
 const newMessage = ref('');
@@ -21,7 +22,6 @@ const { token, isAuthorized, isExpired, setToken, logout } = useAuth();
 const isProfileOpen = ref(false);
 const selectedUserProfile = ref<IUser | null>(null);
 
-console.log(token)
 const currentUser: IUser = jwtDecode<{ exp: number; user: IUser }>(token!).user;
 const { messages, selectedUser, selectUser, sendMessage, closeConnection } = useChatSocket(currentUser.id);
 
@@ -113,9 +113,34 @@ onMounted(async () => {
 
 // Code for auto-scrolling
 const messageContainer = ref<HTMLElement | null>(null);
+const searchQuery = ref('');
+const isSearching = ref(false);
+
+const filteredMessages = computed(() => {
+  if (!searchQuery.value) return messages.value;
+  const query = searchQuery.value.toLowerCase();
+  return messages.value.filter(message => 
+    message.text_content.toLowerCase().includes(query)
+  );
+});
+
+const toggleSearch = () => {
+  isSearching.value = !isSearching.value;
+  if (!isSearching.value) {
+    searchQuery.value = '';
+  } else {
+    nextTick(() => {
+      const searchInput = document.getElementById('message-search');
+      if (searchInput) {
+        searchInput.focus();
+      }
+    });
+  }
+};
+
 
 const scrollToBottom = () => {
-  if (messageContainer.value) {
+  if (messageContainer.value && !searchQuery.value) {
     messageContainer.value.scrollTop = messageContainer.value.scrollHeight;
   }
 };
@@ -211,7 +236,7 @@ const leave = (el: Element, done: () => void) => {
             class="flex items-center flex-1"
           >
             <div class="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold mr-3">
-              <img v-if="user.profile_picture" :src="`http://127.0.0.1:8080/api/image?id=${user.profile_picture}`" :alt="user.username" class="w-full h-full object-center rounded-full">
+              <img v-if="user.profile_picture" :src="`https://chat-app-3yg1.onrender.com/api/image?id=${user.profile_picture}`" :alt="user.username" class="w-full h-full object-center rounded-full">
               <p v-else>{{ user.username.charAt(0) }}</p>
             </div>
             <div>
@@ -232,15 +257,31 @@ const leave = (el: Element, done: () => void) => {
 
     <!-- Chat area -->
     <main class="flex-1 flex flex-col">
-      <header v-if="selectedUser" class="border-b p-4 flex items-center">
-        <div class="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold mr-3">
-          <img v-if="selectedUser.profile_picture" :src="`http://127.0.0.1:8080/api/image?id=${selectedUser.profile_picture}`" :alt="selectedUser.username" class="w-full h-full object-center rounded-full">
-          <p v-else>{{ selectedUser.username.charAt(0) }}</p>
+      <header v-if="selectedUser" class="border-b p-4 flex items-center justify-between">
+        <div class="flex items-center">
+          <div class="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold mr-3">
+            <img v-if="selectedUser.profile_picture" :src="`https://chat-app-3yg1.onrender.com/api/image?id=${selectedUser.profile_picture}`" :alt="selectedUser.username" class="w-full h-full object-center rounded-full">
+            <p v-else>{{ selectedUser.username.charAt(0) }}</p>
+          </div>
+          <div>
+            <h2 class="font-semibold">{{ selectedUser.username }}</h2>
+          </div>
         </div>
-        <div>
-          <h2 class="font-semibold">{{ selectedUser.username }}</h2>
-        </div>
+        <Button variant="ghost" size="icon" @click="toggleSearch">
+          <SearchIcon class="h-5 w-5" />
+          <span class="sr-only">Search messages</span>
+        </Button>
       </header>
+
+      <div v-if="isSearching" class="p-2 border-b">
+        <Input
+          id="message-search"
+          v-model="searchQuery"
+          type="search"
+          placeholder="Search messages..."
+          class="w-full"
+        />
+      </div>
 
       <div v-if="selectedUser" ref="messageContainer" class="flex-1 overflow-y-auto p-4 space-y-4">
         <TransitionGroup 
@@ -252,7 +293,7 @@ const leave = (el: Element, done: () => void) => {
           @enter="enter"
           @leave="leave"
         >
-          <li v-for="(message, index) in messages" :key="message.id" 
+          <li v-for="(message, index) in filteredMessages" :key="message.id" 
               :data-index="index"
               :class="[
                 'flex',
@@ -277,7 +318,7 @@ const leave = (el: Element, done: () => void) => {
             ]">
               <p v-if="message.sender === currentUser!.id">You</p>
               <p v-else-if="!selectedUser.profile_picture">{{selectedUser.username.charAt(0)}}</p>
-              <img v-else :src="`http://127.0.0.1:8080/api/image?id=${selectedUser.profile_picture}`" :alt="selectedUser.username" class="w-full h-full object-center rounded-full">
+              <img v-else :src="`https://chat-app-3yg1.onrender.com/api/image?id=${selectedUser.profile_picture}`" :alt="selectedUser.username" class="w-full h-full object-center rounded-full">
             </div>
             <div class="flex-1">
               <p>{{ message.text_content }}</p>
@@ -302,7 +343,15 @@ const leave = (el: Element, done: () => void) => {
         </TransitionGroup>
       </div>
 
-      <div v-else class="flex-1 flex items-center justify-center bg-muted/30">
+      <div v-if="filteredMessages.length === 0 && searchQuery" class="flex-1 flex items-center justify-center bg-muted/30">
+        <div class="text-center">
+          <SearchIcon class="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h2 class="text-xl font-semibold mb-2">No messages found</h2>
+          <p class="text-muted-foreground">Try a different search term</p>
+        </div>
+      </div>
+
+      <div v-else-if="!selectedUser" class="flex-1 flex items-center justify-center bg-muted/30">
         <div class="text-center">
           <MessageSquareIcon class="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <h2 class="text-xl font-semibold mb-2">Start a conversation</h2>
@@ -314,7 +363,7 @@ const leave = (el: Element, done: () => void) => {
         <form @submit.prevent="handleSubmit" class="space-y-2">
           <div class="flex space-x-2">
             <div class="relative flex-1">
-              <input
+              <Input
                 v-model="newMessage"
                 type="text"
                 placeholder="Type a message..."
@@ -323,7 +372,7 @@ const leave = (el: Element, done: () => void) => {
             </div>
             <label class="px-4 py-2 bg-muted text-muted-foreground rounded-md hover:bg-muted-hover cursor-pointer">
               <ImageIcon class="h-5 w-5" />
-              <input type="file" class="hidden" multiple @change="handleFileSelect" accept="image/*" />
+              <Input type="file" class="hidden" multiple @change="handleFileSelect" accept="image/*" />
             </label>
             <button
               type="submit"

@@ -1,3 +1,5 @@
+import { IUserUpdateDTO } from "@/entities/userUpdateDTO.entity"
+
 export const getAvailableUsers = async (token: string) => {
     const result = await fetch("http://127.0.0.1:8080/api/user/available-users",
         {
@@ -5,5 +7,17 @@ export const getAvailableUsers = async (token: string) => {
         }
     ).then(data => data.json())
         
+    return result
+}
+
+export const updateUser = async (token: string, userData: IUserUpdateDTO) => {
+    const result = await fetch(`http://127.0.0.1:8080/api/update/user?userId=${userData.id}`,
+        {
+            method: 'PUT',
+            headers: {'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json'},
+            body: JSON.stringify(userData)
+        }
+    ).then(data => data.json())
+
     return result
 }

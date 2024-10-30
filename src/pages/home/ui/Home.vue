@@ -1,21 +1,27 @@
 <script setup lang="ts">
-import { IUser } from '@/entities/user.entity';
-import { onMounted, ref, TransitionGroup, watch, nextTick } from 'vue';
+import { ref, onMounted, watch, nextTick } from 'vue';
 import { useAuth } from '@/shared/stores/auth.store';
-import { getAvailableUsers } from '../api/users.api';
-import { MessageSquareIcon, SendIcon, ImageIcon, XIcon } from 'lucide-vue-next';
+import { getAvailableUsers, updateUser } from '../api/users.api';
+import { MessageSquareIcon, SendIcon, ImageIcon, XIcon, MenuIcon, LogOutIcon } from 'lucide-vue-next';
 import { router } from '@/pages/router/Router';
-import { jwtDecode } from 'jwt-decode';
 import { useChatSocket } from '../api/chat.api';
 import { toBase64 } from '@/lib/utils';
 import { toast } from '@/components/ui/toast';
+import UserProfile from '@/pages/home/components/Profile.vue';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from '@/components/ui/sheet';
+import { IUser } from '@/entities/user.entity';
+import { jwtDecode } from 'jwt-decode';
 
 const users = ref<IUser[]>([]);
 const newMessage = ref('');
 const selectedFiles = ref<File[]>([]);
 const isUploading = ref(false);
-const { token, isAuthorized, isExpired } = useAuth();
+const { token, isAuthorized, isExpired, setToken, logout } = useAuth();
+const isProfileOpen = ref(false);
+const selectedUserProfile = ref<IUser | null>(null);
 
+console.log(token)
 const currentUser: IUser = jwtDecode<{ exp: number; user: IUser }>(token!).user;
 const { messages, selectedUser, selectUser, sendMessage, closeConnection } = useChatSocket(currentUser.id);
 
@@ -37,6 +43,18 @@ const removeFile = (index: number) => {
   selectedFiles.value.splice(index, 1);
 };
 
+const handleLogout = async () => {
+  try {
+    logout();
+    router.push('/auth');
+  } catch (e) {
+    toast({
+      title: 'Error',
+      description: `Failed to logout: ${(e as Error).message}`
+    });
+  }
+};
+
 const handleSubmit = async () => {
   if (newMessage.value.trim() === '' && selectedFiles.value.length === 0) return;
 
@@ -44,9 +62,10 @@ const handleSubmit = async () => {
   try {
     const imageCodes: string[] = [];
     for (const file of selectedFiles.value) {
-      const imageCode: string|null = await toBase64(file);
-
-      imageCodes.push(imageCode);
+      const imageCode = await toBase64(file);
+      if (imageCode) {
+        imageCodes.push(imageCode);
+      }
     }
 
     await sendMessage(newMessage.value, imageCodes);
@@ -56,10 +75,32 @@ const handleSubmit = async () => {
     toast({
       title: (e as Error).name,
       description: `Error uploading files: ${(e as Error).message}`
-    })
+    });
   } finally {
     isUploading.value = false;
   }
+};
+
+const handleUpdateUser = async (updatedUser: IUser) => {
+  try {
+    const newToken = await updateUser(token!, updatedUser);
+    setToken(newToken.access_token);
+    toast({
+      title: 'Success',
+      description: 'Profile updated successfully'
+    });
+  } catch (e) {
+    console.log(e)
+    toast({
+      title: 'Error',
+      description: `Failed to update profile: ${(e as Error).message}`
+    });
+  }
+};
+
+const showUserProfile = (user: IUser) => {
+  selectedUserProfile.value = user;
+  isProfileOpen.value = true;
 };
 
 onMounted(async () => {
@@ -130,24 +171,61 @@ const leave = (el: Element, done: () => void) => {
   <div class="flex h-screen bg-background text-foreground">
     <!-- User list sidebar -->
     <aside class="w-64 border-r bg-muted overflow-y-auto">
-      <div class="p-4 border-b">
+      <div class="p-4 border-b flex justify-between items-center">
         <h2 class="text-lg font-semibold">Contacts</h2>
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <MenuIcon class="h-5 w-5" />
+              <span class="sr-only">Open menu</span>
+            </Button>
+          </SheetTrigger>
+          <SheetContent>
+            <SheetHeader>
+              <SheetTitle>Your Profile</SheetTitle>
+              <SheetDescription>View and edit your profile information</SheetDescription>
+            </SheetHeader>
+            <UserProfile 
+              :user="currentUser!" 
+              :is-current-user="true" 
+              @update-user="handleUpdateUser" 
+            />
+            <SheetFooter>
+              <Button variant="destructive" @click="handleLogout" class="w-full mt-4">
+                <LogOutIcon class="mr-2 h-4 w-4" />
+                Logout
+              </Button>
+            </SheetFooter>
+          </SheetContent>
+        </Sheet>
       </div>
       <ul>
         <li 
           v-for="user in users" 
           :key="user.id" 
-          @click="handleSelectUser(user)"
           class="flex items-center p-4 hover:bg-muted-hover cursor-pointer transition-colors"
           :class="{ 'bg-primary/10': selectedUser?.id === user.id }"
         >
-          <div class="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold mr-3">
-            <img v-if="user.profile_picture" :src="`http://127.0.0.1:8080/api/image?id=${user.profile_picture}`" :alt="user.username" class="w-full h-full object-center rounded-full">
-            <p v-else>{{ user.username.charAt(0) }}</p>
+          <div 
+            @click="handleSelectUser(user)"
+            class="flex items-center flex-1"
+          >
+            <div class="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold mr-3">
+              <img v-if="user.profile_picture" :src="`http://127.0.0.1:8080/api/image?id=${user.profile_picture}`" :alt="user.username" class="w-full h-full object-center rounded-full">
+              <p v-else>{{ user.username.charAt(0) }}</p>
+            </div>
+            <div>
+              <p class="font-medium">{{ user.username }}</p>
+            </div>
           </div>
-          <div>
-            <p class="font-medium">{{ user.username }}</p>
-          </div>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            @click="showUserProfile(user)"
+          >
+            <MenuIcon class="h-4 w-4" />
+            <span class="sr-only">View {{ user.username }}'s profile</span>
+          </Button>
         </li>
       </ul>
     </aside>
@@ -183,8 +261,8 @@ const leave = (el: Element, done: () => void) => {
                 'p-4',
                 'rounded-lg',
                 'max-w-[80%]',
-                message.sender === currentUser.id ? 'bg-primary text-primary-foreground ml-auto' : 'bg-muted',
-                message.sender === currentUser.id ? 'flex-row-reverse' : 'flex-row'
+                message.sender === currentUser!.id ? 'bg-primary text-primary-foreground ml-auto' : 'bg-muted',
+                message.sender === currentUser!.id ? 'flex-row-reverse' : 'flex-row'
               ]">
             <div :class="[
               'w-8',
@@ -195,9 +273,9 @@ const leave = (el: Element, done: () => void) => {
               'justify-center',
               'text-xs',
               'font-semibold',
-              message.sender === currentUser.id ? 'bg-primary-foreground text-primary' : 'bg-primary text-primary-foreground'
+              message.sender === currentUser!.id ? 'bg-primary-foreground text-primary' : 'bg-primary text-primary-foreground'
             ]">
-              <p v-if="message.sender === currentUser.id">You</p>
+              <p v-if="message.sender === currentUser!.id">You</p>
               <p v-else-if="!selectedUser.profile_picture">{{selectedUser.username.charAt(0)}}</p>
               <img v-else :src="`http://127.0.0.1:8080/api/image?id=${selectedUser.profile_picture}`" :alt="selectedUser.username" class="w-full h-full object-center rounded-full">
             </div>
@@ -267,5 +345,19 @@ const leave = (el: Element, done: () => void) => {
         </form>
       </footer>
     </main>
+
+    <!-- User Profile Modal -->
+    <Sheet v-model:open="isProfileOpen">
+      <SheetContent>
+        <SheetHeader>
+          <SheetTitle>User Profile</SheetTitle>
+        </SheetHeader>
+        <UserProfile 
+          v-if="selectedUserProfile" 
+          :user="selectedUserProfile" 
+          :is-current-user="false"
+        />
+      </SheetContent>
+    </Sheet>
   </div>
 </template>

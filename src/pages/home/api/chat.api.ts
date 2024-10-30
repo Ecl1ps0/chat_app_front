@@ -7,7 +7,7 @@ const parseMessageData = (message: { id: string; message: string; images: string
     const newMessage = {
         id: message.id,
         text_content: message.message,
-        image_content: message.images ? message.images?.map(image => `http://127.0.0.1:8080/api/image?id=${image}`) : [],
+        image_content: message.images ? message.images?.map(image => `https://chat-app-3yg1.onrender.com/api/image?id=${image}`) : [],
         sender: message.user_from,
         timestamp: message.created_at,
     };
@@ -22,7 +22,7 @@ export function useChatSocket(currentUserId: string) {
     // Handle incoming WebSocket messages
     const initWebSocketHandlers = (): Promise<void> => {
         return new Promise((resolve, reject) => {
-            websocket = new WebSocket("ws://localhost:8080/chat/ws");
+            websocket = new WebSocket("wss://chat-app-3yg1.onrender.com/chat/ws");
 
             websocket.onopen = () => {
                 console.log('WebSocket connection opened');
@@ -100,7 +100,7 @@ export function useChatSocket(currentUserId: string) {
 }
 
 export const getImage = async (imageId: string, token: string): Promise<string> => {
-        const response = await fetch(`http://127.0.0.1:8080/api/image?id=${imageId}`, 
+        const response = await fetch(`https://chat-app-3yg1.onrender.com/api/image?id=${imageId}`, 
             {
                 headers: {Authorization: `Bearer ${token}`}
             }

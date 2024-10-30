@@ -52,7 +52,7 @@ onMounted(() => {
   <div class="space-y-4">
     <div class="flex justify-center">
       <div class="w-32 h-32 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold overflow-hidden">
-        <img v-if="editedUser.profile_picture" :src="`http://127.0.0.1:8080/api/image?id=${editedUser.profile_picture}`" :alt="editedUser.username" class="w-full h-full object-cover">
+        <img v-if="editedUser.profile_picture" :src="`https://chat-app-3yg1.onrender.com/api/image?id=${editedUser.profile_picture}`" :alt="editedUser.username" class="w-full h-full object-cover">
         <p v-else class="text-4xl">{{ editedUser.username.charAt(0) }}</p>
       </div>
     </div>

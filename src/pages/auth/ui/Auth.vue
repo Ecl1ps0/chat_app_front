@@ -31,6 +31,15 @@
         try{
             const result = await handleAuth(values, isRegistration.value);
             if (result && result.access_token) setToken(result.access_token);
+
+            if (isRegistration.value && result.access_token) {
+                toast({
+                    title: "Status",
+                    description: "You successfully registered!"
+                });
+                isRegistration.value = false;
+                return;
+            } 
         } catch(e) {
             toast({
                 title: (e as Error).name,
@@ -38,15 +47,6 @@
             });
             return;
         }
-
-        if (isRegistration.value) {
-            toast({
-                title: "Status",
-                description: "You successfully registered!"
-            });
-            isRegistration.value = false;
-            return;
-        } 
         
         router.push("/")
     }

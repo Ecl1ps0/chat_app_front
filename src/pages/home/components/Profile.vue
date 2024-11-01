@@ -30,14 +30,11 @@ const handleSubmit = () => {
       username: editedUser.value.username,
       bio: editedUser.value.bio,
       email: editedUser.value.email,
-    }
+      profile_picture: newAvatartImage.value
+    };
 
-    if ((document.getElementById("profile-picture-input") as HTMLInputElement)?.files?.[0]) {
-      updatedUser.profile_picture = newAvatartImage.value;
-      newAvatartImage.value = undefined;
-    }
-    console.log(newAvatartImage.value)
-    emit('updateUser', editedUser.value);
+    emit('updateUser', updatedUser);
+    newAvatartImage.value = undefined;
 };
 
 const handleFileChange = async (event: Event) => {

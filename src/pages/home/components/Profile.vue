@@ -12,7 +12,7 @@ const props = defineProps<{
   isCurrentUser: boolean;
 }>();
 
-const initialProfilePicture = ref<string | undefined>(undefined);
+const newAvatartImage = ref<string | undefined>(undefined);
 
 const emit = defineEmits<{
   (e: 'updateUser', user: IUser): void;
@@ -25,27 +25,27 @@ watch(() => props.user, (newUser) => {
 }, { deep: true });
 
 const handleSubmit = () => {
-    if(initialProfilePicture.value === editedUser.value.profile_picture) {
-        editedUser.value.profile_picture = undefined;
+    const updatedUser: IUser = {
+      id: editedUser.value.id,
+      username: editedUser.value.username,
+      bio: editedUser.value.bio,
+      email: editedUser.value.email,
+    }
+
+    if ((document.getElementById("profile-picture-input") as HTMLInputElement)?.files?.[0]) {
+      updatedUser.profile_picture = newAvatartImage.value;
+      newAvatartImage.value = undefined;
     }
     emit('updateUser', editedUser.value);
-
-    if (editedUser.value.profile_picture === undefined) {
-        editedUser.value.profile_picture = initialProfilePicture.value;
-    }
 };
 
 const handleFileChange = async (event: Event) => {
   const file = (event.target as HTMLInputElement).files?.[0];
   if (file) {
     const imageCode = await toBase64(file);
-    editedUser.value.profile_picture = imageCode;
+    newAvatartImage.value = imageCode;
   }
 };
-
-onMounted(() => {
-  initialProfilePicture.value = props.user.profile_picture;
-});
 </script>
 
 <template>
@@ -74,8 +74,8 @@ onMounted(() => {
       </div>
 
       <div v-if="isCurrentUser">
-        <Label for="profile-picture">Profile Picture</Label>
-        <Input id="profile-picture" type="file" accept="image/*" @change="handleFileChange" />
+        <Label for="profile-picture-input">Profile Picture</Label>
+        <Input id="profile-picture-input" type="file" accept="image/*" @change="handleFileChange" />
       </div>
 
       <Button v-if="isCurrentUser" type="submit">Update Profile</Button>

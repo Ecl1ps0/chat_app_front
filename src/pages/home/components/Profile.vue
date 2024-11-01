@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, watch }   from 'vue';
+import { ref, watch }   from 'vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -36,6 +36,7 @@ const handleSubmit = () => {
       updatedUser.profile_picture = newAvatartImage.value;
       newAvatartImage.value = undefined;
     }
+    console.log(newAvatartImage.value)
     emit('updateUser', editedUser.value);
 };
 

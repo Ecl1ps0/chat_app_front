@@ -19,6 +19,7 @@ const emit = defineEmits<{
 }>();
 
 const editedUser = ref<IUser>({ ...props.user });
+const https_domain = import.meta.env.VITE_DOMAIN_HTTPS;
 
 watch(() => props.user, (newUser) => {
   editedUser.value = { ...newUser };
@@ -50,7 +51,7 @@ const handleFileChange = async (event: Event) => {
   <div class="space-y-4">
     <div class="flex justify-center">
       <div class="w-32 h-32 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold overflow-hidden">
-        <img v-if="editedUser.profile_picture" :src="`${import.meta.env.VITE_DOMAIN_HTTPS}/api/image?id=${editedUser.profile_picture}`" :alt="editedUser.username" class="w-full h-full object-cover">
+        <img v-if="editedUser.profile_picture" :src="`${https_domain}/api/image?id=${editedUser.profile_picture}`" :alt="editedUser.username" class="w-full h-full object-cover">
         <p v-else class="text-4xl">{{ editedUser.username.charAt(0) }}</p>
       </div>
     </div>

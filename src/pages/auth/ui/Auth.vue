@@ -28,28 +28,35 @@
     }))
 
     const onSubmit = async (values: any) => {
-        try{
-            const result = await handleAuth(values, isRegistration.value);
-            if (result && result.access_token) setToken(result.access_token);
+    try {
+        const result = await handleAuth(values, isRegistration.value);
+        
+        if (result && result.access_token) {
+            setToken(result.access_token);
+            
+            router.push("/");
+            return;
+        } 
 
-            if (isRegistration.value && result.access_token) {
-                toast({
-                    title: "Status",
-                    description: "You successfully registered!"
-                });
-                isRegistration.value = false;
-                return;
-            } 
-        } catch(e) {
+        if (isRegistration.value) {
             toast({
-                title: (e as Error).name,
-                description: `Token handling error: ${(e as Error).message}`
+                title: "Registration Successful",
+                description: "You have successfully registered!",
+                duration: 5000,
             });
+            
+            isRegistration.value = false;
             return;
         }
-        
-        router.push("/")
+    } catch (e) {
+        toast({
+            title: (e as Error).name,
+            description: `Token handling error: ${(e as Error).message}`,
+            duration: 5000,
+
+        });
     }
+}
 </script>
 
 <template>

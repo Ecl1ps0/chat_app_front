@@ -21,6 +21,7 @@ const isUploading = ref(false);
 const { token, isAuthorized, isExpired, setToken, logout } = useAuth();
 const isProfileOpen = ref(false);
 const selectedUserProfile = ref<IUser | null>(null);
+const https_domain = import.meta.env.VITE_DOMAIN_HTTPS;
 
 const currentUser: IUser = jwtDecode<{ exp: number; user: IUser }>(token!).user;
 const { messages, selectedUser, selectUser, sendMessage, closeConnection } = useChatSocket(currentUser.id);
@@ -236,7 +237,7 @@ const leave = (el: Element, done: () => void) => {
             class="flex items-center flex-1"
           >
             <div class="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold mr-3">
-              <img v-if="user.profile_picture" :src="`https://chat-app-3yg1.onrender.com/api/image?id=${user.profile_picture}`" :alt="user.username" class="w-full h-full object-center rounded-full">
+              <img v-if="user.profile_picture" :src="`${https_domain}/api/image?id=${user.profile_picture}`" :alt="user.username" class="w-full h-full object-center rounded-full">
               <p v-else>{{ user.username.charAt(0) }}</p>
             </div>
             <div>
@@ -260,7 +261,7 @@ const leave = (el: Element, done: () => void) => {
       <header v-if="selectedUser" class="border-b p-4 flex items-center justify-between">
         <div class="flex items-center">
           <div class="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold mr-3">
-            <img v-if="selectedUser.profile_picture" :src="`https://chat-app-3yg1.onrender.com/api/image?id=${selectedUser.profile_picture}`" :alt="selectedUser.username" class="w-full h-full object-center rounded-full">
+            <img v-if="selectedUser.profile_picture" :src="`${https_domain}/api/image?id=${selectedUser.profile_picture}`" :alt="selectedUser.username" class="w-full h-full object-center rounded-full">
             <p v-else>{{ selectedUser.username.charAt(0) }}</p>
           </div>
           <div>
@@ -318,7 +319,7 @@ const leave = (el: Element, done: () => void) => {
             ]">
               <p v-if="message.sender === currentUser!.id">You</p>
               <p v-else-if="!selectedUser.profile_picture">{{selectedUser.username.charAt(0)}}</p>
-              <img v-else :src="`https://chat-app-3yg1.onrender.com/api/image?id=${selectedUser.profile_picture}`" :alt="selectedUser.username" class="w-full h-full object-center rounded-full">
+              <img v-else :src="`${https_domain}/api/image?id=${selectedUser.profile_picture}`" :alt="selectedUser.username" class="w-full h-full object-center rounded-full">
             </div>
             <div class="flex-1">
               <p>{{ message.text_content }}</p>

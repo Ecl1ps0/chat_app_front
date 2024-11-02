@@ -30,15 +30,16 @@
     const onSubmit = async (values: any) => {
     try {
         const result = await handleAuth(values, isRegistration.value);
+        const data = await result.json()
         
-        if (result && result.access_token) {
-            setToken(result.access_token);
+        if (result && data.access_token) {
+            setToken(data.access_token);
             
             router.push("/");
             return;
         } 
 
-        if (isRegistration.value) {
+        if (isRegistration.value && result.status === 200) {
             toast({
                 title: "Registration Successful",
                 description: "You have successfully registered!",
@@ -47,13 +48,18 @@
             
             isRegistration.value = false;
             return;
+        } else {
+            toast({
+                title: "User Exception",
+                description: "User with such username is already exist!",
+                duration: 5000,
+            });
         }
     } catch (e) {
         toast({
             title: (e as Error).name,
             description: `Token handling error: ${(e as Error).message}`,
             duration: 5000,
-
         });
     }
 }

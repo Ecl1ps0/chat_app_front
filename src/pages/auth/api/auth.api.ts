@@ -10,7 +10,7 @@ export const handleAuth = async (values: any, isRegistration: boolean) => {
         headers: {
             "Content-type": "application/json; charset=UTF-8"
         }
-    }).then(data => data.json()).catch(console.log)
+    })
 
     return result
 }

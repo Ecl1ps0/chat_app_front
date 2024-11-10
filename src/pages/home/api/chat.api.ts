@@ -3,13 +3,14 @@ import { IMessage } from '@/entities/message.entity';
 import { IMessageDTO } from '@/entities/messageDTO.entity';
 import { IUser } from '@/entities/user.entity';
 
-const parseMessageData = (message: { id: string; message: string; images: string[]; user_from: string; created_at: number }) => {
+const parseMessageData = (message: { id: string; message: string; images: string[]; user_from: string; created_at: number; updated_at: number; }) => {
     const newMessage = {
         id: message.id,
         text_content: message.message,
         image_content: message.images ? message.images?.map(image => `${import.meta.env.VITE_DOMAIN_HTTPS}/api/image?id=${image}`) : [],
         sender: message.user_from,
-        timestamp: message.created_at,
+        created_at: message.created_at,
+        updated_at: message.updated_at,
     };
     return newMessage;
 };
@@ -34,10 +35,18 @@ export function useChatSocket(currentUserId: string) {
                 if (message.chat_messages) {
                     const oldMessages: IMessage[] = message.chat_messages.map((msg: any) => parseMessageData(msg));
                     messages.value.push(...oldMessages);
-                } else {
-                    const newMessage = parseMessageData(message);
-                    messages.value.push(newMessage);
+                    return
+                } 
+
+                const parsedMessage = parseMessageData(message);
+
+                const candidate_index = messages.value.findIndex(element => element.id === parsedMessage.id)
+                if (candidate_index !== -1) {
+                    messages.value[candidate_index] = parsedMessage;
+                    return
                 }
+                
+                messages.value.push(parsedMessage);
             };
 
             websocket.onclose = () => {
@@ -57,7 +66,21 @@ export function useChatSocket(currentUserId: string) {
             const messageDTO: IMessageDTO = {
                 message: newMessage,
                 sender_id: currentUserId,
-                images: imageCodes
+                images: imageCodes,
+                is_update: false,
+            };
+            websocket.send(JSON.stringify(messageDTO));
+        }
+    };
+
+    const updateMessage = (messageId: string, updatedContent: string) => {
+        if (websocket?.readyState === WebSocket.OPEN) {
+            const messageDTO: IMessageDTO = {
+                id: messageId,
+                message: updatedContent,
+                sender_id: "",
+                images: [],
+                is_update: true,
             };
             websocket.send(JSON.stringify(messageDTO));
         }
@@ -94,19 +117,8 @@ export function useChatSocket(currentUserId: string) {
         messages,
         selectedUser,
         sendMessage,
+        updateMessage,
         selectUser,
         closeConnection,
     };
 }
-
-export const getImage = async (imageId: string, token: string): Promise<string> => {
-        const response = await fetch(`${import.meta.env.VITE_DOMAIN_HTTPS}/api/image?id=${imageId}`, 
-            {
-                headers: {Authorization: `Bearer ${token}`}
-            }
-        );
- 
-        const blob = await response.blob();
-
-        return URL.createObjectURL(blob)
-    }

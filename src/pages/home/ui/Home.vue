@@ -10,21 +10,29 @@ import { toast } from '@/components/ui/toast';
 import UserProfile from '@/pages/home/components/Profile.vue';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from '@/components/ui/sheet';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { IUser } from '@/entities/user.entity';
 import { jwtDecode } from 'jwt-decode';
 import Input from '@/components/ui/input/Input.vue';
+import { IMessage } from '@/entities/message.entity';
+import ContextMenu from '../components/ContextMenu.vue';
+
+const https_domain = import.meta.env.VITE_DOMAIN_HTTPS;
 
 const users = ref<IUser[]>([]);
 const newMessage = ref('');
 const selectedFiles = ref<File[]>([]);
 const isUploading = ref(false);
-const { token, isAuthorized, isExpired, setToken, logout } = useAuth();
 const isProfileOpen = ref(false);
 const selectedUserProfile = ref<IUser | null>(null);
-const https_domain = import.meta.env.VITE_DOMAIN_HTTPS;
+const contextMenu = ref({ show: false, x: 0, y: 0 });
+const selectedMessage = ref<IMessage | null >(null);
+const isUpdateModalOpen = ref(false);
+const updatedMessageContent = ref('');
 
+const { token, isAuthorized, isExpired, setToken, logout } = useAuth();
 const currentUser: IUser = jwtDecode<{ exp: number; user: IUser }>(token!).user;
-const { messages, selectedUser, selectUser, sendMessage, closeConnection } = useChatSocket(currentUser.id);
+const { messages, selectedUser, selectUser, sendMessage, updateMessage, closeConnection } = useChatSocket(currentUser.id);
 
 const handleSelectUser = (user: IUser) => {
   if (selectedUser.value) {
@@ -82,6 +90,31 @@ const handleSubmit = async () => {
   }
 };
 
+const handleUpdateMessage = async () => {
+  if (!selectedMessage.value || !updatedMessageContent.value.trim()) return;
+
+  try {
+    await updateMessage(selectedMessage.value.id, updatedMessageContent.value);
+    
+    // Update the message in the local state
+    const index = messages.value.findIndex(m => m.id === selectedMessage.value!.id);
+    if (index !== -1) {
+      messages.value[index].text_content = updatedMessageContent.value;
+    }
+
+    toast({
+      title: 'Success',
+      description: 'Message updated successfully'
+    });
+    closeUpdateModal();
+  } catch (error) {
+    toast({
+      title: 'Error',
+      description: `Failed to update message: ${(error as Error).message}`
+    });
+  }
+};
+
 const handleUpdateUser = async (updatedUser: IUser) => {
   try {
     const newToken = await updateUser(token!, updatedUser);
@@ -112,8 +145,32 @@ onMounted(async () => {
   }
 });
 
-// Code for auto-scrolling
-const messageContainer = ref<HTMLElement | null>(null);
+// Code for context menu
+const handleContextMenu = (event: MouseEvent, message: IMessage) => {
+  event.preventDefault();
+  if (message.sender === currentUser.id) {
+    contextMenu.value = { show: true, x: event.clientX, y: event.clientY };
+    selectedMessage.value = message;
+  }
+};
+
+const closeContextMenu = () => {
+  contextMenu.value.show = false;
+};
+
+const openUpdateModal = () => {
+  isUpdateModalOpen.value = true;
+  updatedMessageContent.value = selectedMessage.value!.text_content;
+  closeContextMenu();
+};
+
+const closeUpdateModal = () => {
+  isUpdateModalOpen.value = false;
+  selectedMessage.value = null;
+  updatedMessageContent.value = '';
+};
+
+// Code for searching
 const searchQuery = ref('');
 const isSearching = ref(false);
 
@@ -139,6 +196,8 @@ const toggleSearch = () => {
   }
 };
 
+// Code for auto-scrolling
+const messageContainer = ref<HTMLElement | null>(null);
 
 const scrollToBottom = () => {
   if (messageContainer.value && !searchQuery.value) {
@@ -305,7 +364,9 @@ const leave = (el: Element, done: () => void) => {
                 'max-w-[80%]',
                 message.sender === currentUser!.id ? 'bg-primary text-primary-foreground ml-auto' : 'bg-muted',
                 message.sender === currentUser!.id ? 'flex-row-reverse' : 'flex-row'
-              ]">
+              ]"
+              @contextmenu="handleContextMenu($event, message)"
+          >
             <div :class="[
               'w-8',
               'h-8',
@@ -329,7 +390,7 @@ const leave = (el: Element, done: () => void) => {
                 </div>
               </div>
               <span class="text-xs text-muted-foreground mt-1 block">
-                {{ new Date(message.timestamp * 1000).toLocaleString("en-GB", {
+                {{ new Date(message.created_at * 1000).toLocaleString("en-GB", {
                   day: '2-digit', 
                   month: '2-digit', 
                   year: 'numeric', 
@@ -395,6 +456,35 @@ const leave = (el: Element, done: () => void) => {
         </form>
       </footer>
     </main>
+
+    <!-- Context Menu -->
+    <ContextMenu
+      :show="contextMenu.show"
+      :x="contextMenu.x"
+      :y="contextMenu.y"
+      @update="openUpdateModal"
+      @close="closeContextMenu"
+    />
+
+    <!-- Update Message Modal -->
+    <Dialog v-model:open="isUpdateModalOpen">
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Update Message</DialogTitle>
+        </DialogHeader>
+        <div class="py-4">
+          <Input
+            v-model="updatedMessageContent"
+            placeholder="Enter updated message"
+            class="w-full"
+          />
+        </div>
+        <DialogFooter>
+          <Button @click="closeUpdateModal" variant="outline">Cancel</Button>
+          <Button @click="handleUpdateMessage" variant="default">Update</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
     <!-- User Profile Modal -->
     <Sheet v-model:open="isProfileOpen">

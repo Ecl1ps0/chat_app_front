@@ -3,5 +3,6 @@ export interface IMessage {
     text_content: string;
     image_content: string[];
     sender: string;
-    timestamp: number;
+    created_at: number;
+    updated_at: number;
 }

@@ -32,10 +32,10 @@ onUnmounted(() => {
 
 <template>
   <div
-    v-if="show"
+    v-if="props.show"
     ref="menuRef"
     class="absolute bg-popover text-popover-foreground rounded-md shadow-md py-1 z-50"
-    :style="{ top: `${y}px`, left: `${x}px` }"
+    :style="{ top: `${props.y}px`, left: `${props.x}px` }"
   >
     <Button variant="ghost" class="w-full justify-start" @click="emit('update')">
       Update Message

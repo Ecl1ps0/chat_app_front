@@ -32,11 +32,6 @@ export function useChatSocket(currentUserId: string) {
 
             websocket.onmessage = (event) => {
                 const message = JSON.parse(event.data);
-                if (message.chat_messages) {
-                    const oldMessages: IMessage[] = message.chat_messages.map((msg: any) => parseMessageData(msg));
-                    messages.value.push(...oldMessages);
-                    return
-                } 
 
                 const parsedMessage = parseMessageData(message);
 
@@ -87,18 +82,25 @@ export function useChatSocket(currentUserId: string) {
     };
 
     // Select a user to start the conversation
-    const selectUser = async (user: IUser) => {
+    const selectUser = async (token:string, user: IUser) => {
         selectedUser.value = user;
         messages.value = [];  // Clear the current messages
-        const chatMembers = {
-            user1_id: currentUserId,
-            user2_id: user.id,
-        };
+        const result = await fetch(`${import.meta.env.VITE_DOMAIN_HTTPS}/api/chat/init?user1_id=${currentUserId}&user2_id=${user.id}`,
+            {
+                method: 'GET',
+                headers: {'Authorization': `Bearer ${token}`},
+            }
+        ).then(data => data.json());
+
+        if (result.chat_messages) {
+            const oldMessages: IMessage[] = result.chat_messages.map((msg: any) => parseMessageData(msg));
+            messages.value.push(...oldMessages);
+        }
 
         // Wait for WebSocket connection to open, then send the chat initiation message
         await initWebSocketHandlers().then(() => {
-            if (websocket?.readyState === WebSocket.OPEN) {
-                websocket.send(JSON.stringify(chatMembers));
+            if (websocket?.readyState === WebSocket.OPEN && result.chat_id) {
+                websocket.send(result.chat_id);
             }
         }).catch(error => {
             console.error('Error initializing WebSocket:', error);

@@ -38,7 +38,7 @@ const handleSelectUser = (user: IUser) => {
   if (selectedUser.value) {
     closeConnection();
   }
-  selectUser(user);
+  selectUser(token!, user);
 };
 
 const handleFileSelect = (event: Event) => {

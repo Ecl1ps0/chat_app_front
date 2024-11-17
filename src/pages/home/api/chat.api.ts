@@ -3,11 +3,12 @@ import { IMessage } from '@/entities/message.entity';
 import { IMessageDTO } from '@/entities/messageDTO.entity';
 import { IUser } from '@/entities/user.entity';
 
-const parseMessageData = (message: { id: string; message: string; images: string[]; user_from: string; created_at: number; updated_at: number; }) => {
+const parseMessageData = (message: { id: string; message: string; images: string[]; audio: string; user_from: string; created_at: number; updated_at: number; }) => {
     const newMessage = {
         id: message.id,
         text_content: message.message,
         image_content: message.images ? message.images?.map(image => `${import.meta.env.VITE_DOMAIN_HTTPS}/api/image?id=${image}`) : [],
+        audio_content: message.audio,
         sender: message.user_from,
         created_at: message.created_at,
         updated_at: message.updated_at,
@@ -56,12 +57,13 @@ export function useChatSocket(currentUserId: string) {
     };
 
     // Send message to the server
-    const sendMessage = (newMessage: string, imageCodes: string[]) => {
+    const sendMessage = (newMessage?: string, imageCodes?: string[], audioCode?: string) => {
         if (websocket?.readyState === WebSocket.OPEN) {
             const messageDTO: IMessageDTO = {
                 message: newMessage,
                 sender_id: currentUserId,
                 images: imageCodes,
+                audio: audioCode,
                 is_update: false,
             };
             websocket.send(JSON.stringify(messageDTO));
@@ -74,7 +76,6 @@ export function useChatSocket(currentUserId: string) {
                 id: messageId,
                 message: updatedContent,
                 sender_id: "",
-                images: [],
                 is_update: true,
             };
             websocket.send(JSON.stringify(messageDTO));

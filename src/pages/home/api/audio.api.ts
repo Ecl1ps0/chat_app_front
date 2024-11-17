@@ -1,5 +1,5 @@
-export const uploadImages = async (token: string, formData: FormData) => {
-    const result = await fetch(`${import.meta.env.VITE_DOMAIN_HTTPS}/api/image/upload`,
+export const uploadAudio = async (token: string, formData: FormData) => {
+    const result = await fetch(`${import.meta.env.VITE_DOMAIN_HTTPS}/api/audio/upload`,
         {
             method: 'POST',
             headers: {'Authorization': `Bearer ${token}`},

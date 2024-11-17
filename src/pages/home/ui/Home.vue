@@ -16,6 +16,8 @@ import Input from '@/components/ui/input/Input.vue';
 import { IMessage } from '@/entities/message.entity';
 import ContextMenu from '../components/ContextMenu.vue';
 import { uploadImages } from '../api/image.api';
+import AudioRecorder from '../components/AudioRecorder.vue';
+import { uploadAudio } from '../api/audio.api';
 
 const https_domain = import.meta.env.VITE_DOMAIN_HTTPS;
 
@@ -117,6 +119,27 @@ const handleUpdateMessage = async () => {
   }
 };
 
+const handleAudioRecording = async (audioBlob: Blob) => {
+  isUploading.value = true;
+  try {
+    const formData = new FormData();
+    formData.append("audio", audioBlob, "audio_message.wav");
+
+    // Assuming you have an API endpoint for uploading audio
+    const audioId = await uploadAudio(token!, formData);
+
+    // Send the message with the audio ID
+    await sendMessage(undefined, undefined, audioId.audio_id);
+  } catch (e) {
+    toast({
+      title: (e as Error).name,
+      description: `Error uploading audio: ${(e as Error).message}`
+    });
+  } finally {
+    isUploading.value = false;
+  }
+};
+
 const handleUpdateUser = async (formData: FormData) => {
   try {
     const newToken = await updateUser(token!, formData);
@@ -150,7 +173,7 @@ onMounted(async () => {
 // Code for context menu
 const handleContextMenu = (event: MouseEvent, message: IMessage) => {
   event.preventDefault();
-  if (message.sender === currentUser.id) {
+  if (message.sender === currentUser.id && !message.audio_content) {
     contextMenu.value = { show: true, x: event.clientX, y: event.clientY };
     selectedMessage.value = message;
   }
@@ -391,6 +414,9 @@ const leave = (el: Element, done: () => void) => {
                   <img :src="image" alt="Uploaded image" loading="lazy" class="rounded-md w-full h-auto"/>
                 </div>
               </div>
+              <div v-if="message.audio_content?.length > 0" class="mt-2">
+                <audio :src="`${https_domain}/api/audio?audio_id=${message.audio_content}`" controls class="w-full"></audio>
+              </div>
               <span class="text-xs text-muted-foreground mt-1 block">
                 {{ new Date(message.created_at * 1000).toLocaleString("en-GB", {
                   day: '2-digit', 
@@ -438,14 +464,15 @@ const leave = (el: Element, done: () => void) => {
               <ImageIcon class="h-5 w-5" />
               <Input type="file" class="hidden" multiple @change="handleFileSelect" accept="image/*" />
             </label>
-            <button
+            <AudioRecorder @sendAudio="handleAudioRecording" />
+            <Button
               type="submit"
               class="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary"
               :disabled="isUploading"
             >
               <SendIcon v-if="!isUploading" class="h-5 w-5" />
               <span v-else class="loading loading-spinner loading-sm"></span>
-            </button>
+            </Button>
           </div>
           <div v-if="selectedFiles.length > 0" class="flex flex-wrap gap-2 mt-2">
             <div v-for="(file, index) in selectedFiles" :key="index" class="bg-muted rounded-md p-2 flex items-center">

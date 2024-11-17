@@ -5,17 +5,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { IUser } from '@/entities/user.entity';
-import { toBase64 } from '@/lib/utils';
 
 const props = defineProps<{
   user: IUser;
   isCurrentUser: boolean;
 }>();
 
-const newAvatartImage = ref<string | undefined>(undefined);
+const newAvatartImage = ref<File | undefined>(undefined);
 
 const emit = defineEmits<{
-  (e: 'updateUser', user: IUser): void;
+  (e: 'updateUser', formData: FormData): void;
 }>();
 
 const editedUser = ref<IUser>({ ...props.user });
@@ -26,24 +25,22 @@ watch(() => props.user, (newUser) => {
 }, { deep: true });
 
 const handleSubmit = () => {
-    const updatedUser: IUser = {
-      id: editedUser.value.id,
-      username: editedUser.value.username,
-      bio: editedUser.value.bio,
-      email: editedUser.value.email,
-      profile_picture: newAvatartImage.value
-    };
+    const formData = new FormData();
+    formData.append("id", editedUser.value.id);
+    formData.append("username", editedUser.value.username);
+    formData.append("bio", editedUser.value.bio || "");
+    formData.append("email", editedUser.value.email || "");
+    if (newAvatartImage.value) {
+      formData.append("profile_picture", newAvatartImage.value);
+    }
 
-    emit('updateUser', updatedUser);
+    emit('updateUser', formData);
     newAvatartImage.value = undefined;
 };
 
 const handleFileChange = async (event: Event) => {
   const file = (event.target as HTMLInputElement).files?.[0];
-  if (file) {
-    const imageCode = await toBase64(file);
-    newAvatartImage.value = imageCode;
-  }
+  newAvatartImage.value = file;
 };
 </script>
 

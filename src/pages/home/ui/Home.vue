@@ -5,7 +5,6 @@ import { getAvailableUsers, updateUser } from '../api/users.api';
 import { MessageSquareIcon, SendIcon, ImageIcon, XIcon, MenuIcon, LogOutIcon, SearchIcon } from 'lucide-vue-next';
 import { router } from '@/pages/router/Router';
 import { useChatSocket } from '../api/chat.api';
-import { toBase64 } from '@/lib/utils';
 import { toast } from '@/components/ui/toast';
 import UserProfile from '@/pages/home/components/Profile.vue';
 import { Button } from '@/components/ui/button';
@@ -16,6 +15,7 @@ import { jwtDecode } from 'jwt-decode';
 import Input from '@/components/ui/input/Input.vue';
 import { IMessage } from '@/entities/message.entity';
 import ContextMenu from '../components/ContextMenu.vue';
+import { uploadImages } from '../api/image.api';
 
 const https_domain = import.meta.env.VITE_DOMAIN_HTTPS;
 
@@ -69,15 +69,17 @@ const handleSubmit = async () => {
 
   isUploading.value = true;
   try {
-    const imageCodes: string[] = [];
-    for (const file of selectedFiles.value) {
-      const imageCode = await toBase64(file);
-      if (imageCode) {
-        imageCodes.push(imageCode);
-      }
+    let imageIds: string[] = [];
+    if (selectedFiles.value.length > 0) {
+      const formData = new FormData();
+      selectedFiles.value.forEach((file: File) => {
+        formData.append("images", file); 
+      });
+
+      imageIds = await uploadImages(token!, formData);
     }
 
-    await sendMessage(newMessage.value, imageCodes);
+    await sendMessage(newMessage.value, imageIds);
     newMessage.value = '';
     selectedFiles.value = [];
   } catch (e) {
@@ -115,9 +117,9 @@ const handleUpdateMessage = async () => {
   }
 };
 
-const handleUpdateUser = async (updatedUser: IUser) => {
+const handleUpdateUser = async (formData: FormData) => {
   try {
-    const newToken = await updateUser(token!, updatedUser);
+    const newToken = await updateUser(token!, formData);
     setToken(newToken.access_token);
     toast({
       title: 'Success',

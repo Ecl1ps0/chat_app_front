@@ -1,23 +1,21 @@
-import { IUserUpdateDTO } from "@/entities/userUpdateDTO.entity"
-
 export const getAvailableUsers = async (token: string) => {
     const result = await fetch(`${import.meta.env.VITE_DOMAIN_HTTPS}/api/user/available-users`,
         {
             headers: {Authorization: `Bearer ${token}`}
         }
-    ).then(data => data.json())
+    ).then(data => data.json());
         
-    return result
+    return result;
 }
 
-export const updateUser = async (token: string, userData: IUserUpdateDTO) => {
-    const result = await fetch(`${import.meta.env.VITE_DOMAIN_HTTPS}/api/update/user?userId=${userData.id}`,
+export const updateUser = async (token: string, formData: FormData) => {
+    const result = await fetch(`${import.meta.env.VITE_DOMAIN_HTTPS}/api/update/user?userId=${formData.get("id")?.toString()}`,
         {
             method: 'PUT',
-            headers: {'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json'},
-            body: JSON.stringify(userData)
+            headers: {'Authorization': `Bearer ${token}`},
+            body: formData
         }
-    ).then(data => data.json())
+    ).then(data => data.json());
 
-    return result
+    return result;
 }

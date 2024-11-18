@@ -3,13 +3,14 @@ import { IMessage } from '@/entities/message.entity';
 import { IMessageDTO } from '@/entities/messageDTO.entity';
 import { IUser } from '@/entities/user.entity';
 
-const parseMessageData = (message: { id: string; message: string; images: string[]; audio: string; user_from: string; created_at: number; updated_at: number; }) => {
-    const newMessage = {
+const parseMessageData = (message: { id: string; message: string; images: string[]; audio: string; user_from: string; deleted_for: {[key: string]: number}; created_at: number; updated_at: number; }) => {
+    const newMessage: IMessage = {
         id: message.id,
         text_content: message.message,
         image_content: message.images ? message.images?.map(image => `${import.meta.env.VITE_DOMAIN_HTTPS}/api/image?id=${image}`) : [],
         audio_content: message.audio,
         sender: message.user_from,
+        deleted_for: message.deleted_for,
         created_at: message.created_at,
         updated_at: message.updated_at,
     };
@@ -36,7 +37,15 @@ export function useChatSocket(currentUserId: string) {
 
                 const parsedMessage = parseMessageData(message);
 
-                const candidate_index = messages.value.findIndex(element => element.id === parsedMessage.id)
+                let candidate_index: number;
+                if (parsedMessage.deleted_for) {
+                    if (Object.keys(parsedMessage.deleted_for).some(key => key === currentUserId)) {
+                        messages.value = messages.value.filter(element => element.id !== parsedMessage.id);
+                        return; 
+                    }
+                }
+
+                candidate_index = messages.value.findIndex(element => element.id === parsedMessage.id)
                 if (candidate_index !== -1) {
                     messages.value[candidate_index] = parsedMessage;
                     return
@@ -82,6 +91,23 @@ export function useChatSocket(currentUserId: string) {
         }
     };
 
+    const deleteMessage = (messageId: string, deleteForBoth: boolean, userId?:string) => {
+        let delete_for: string[] = [currentUserId];
+        if (deleteForBoth) {
+            delete_for.push(userId!)
+        } 
+
+        if (websocket?.readyState === WebSocket.OPEN) {
+            const messageDTO: IMessageDTO = {
+                id: messageId,
+                sender_id: "",
+                delete_for: delete_for,
+                is_update: false,
+            };
+            websocket.send(JSON.stringify(messageDTO));
+        }
+    }
+
     // Select a user to start the conversation
     const selectUser = async (token:string, user: IUser) => {
         selectedUser.value = user;
@@ -121,6 +147,7 @@ export function useChatSocket(currentUserId: string) {
         selectedUser,
         sendMessage,
         updateMessage,
+        deleteMessage,
         selectUser,
         closeConnection,
     };

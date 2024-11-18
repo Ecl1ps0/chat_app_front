@@ -27,14 +27,16 @@ const selectedFiles = ref<File[]>([]);
 const isUploading = ref(false);
 const isProfileOpen = ref(false);
 const selectedUserProfile = ref<IUser | null>(null);
-const contextMenu = ref({ show: false, x: 0, y: 0 });
+const contextMenu = ref({ show: false, x: 0, y: 0, isCurrentUser: false, isAudioMessage: false });
 const selectedMessage = ref<IMessage | null >(null);
 const isUpdateModalOpen = ref(false);
 const updatedMessageContent = ref('');
+const isDeleteModalOpen = ref(false);
+const deleteForBoth = ref(false);
 
 const { token, isAuthorized, isExpired, setToken, logout } = useAuth();
 const currentUser: IUser = jwtDecode<{ exp: number; user: IUser }>(token!).user;
-const { messages, selectedUser, selectUser, sendMessage, updateMessage, closeConnection } = useChatSocket(currentUser.id);
+const { messages, selectedUser, selectUser, sendMessage, updateMessage, deleteMessage, closeConnection } = useChatSocket(currentUser.id);
 
 const handleSelectUser = (user: IUser) => {
   if (selectedUser.value) {
@@ -81,7 +83,7 @@ const handleSubmit = async () => {
       imageIds = await uploadImages(token!, formData);
     }
 
-    await sendMessage(newMessage.value, imageIds);
+    await sendMessage(newMessage.value, imageIds, undefined);
     newMessage.value = '';
     selectedFiles.value = [];
   } catch (e) {
@@ -115,6 +117,32 @@ const handleUpdateMessage = async () => {
     toast({
       title: 'Error',
       description: `Failed to update message: ${(error as Error).message}`
+    });
+  }
+};
+
+const handleDeleteMessage = async () => {
+  if (!selectedMessage.value) return;
+
+  console.log(selectedMessage.value)
+
+  try {
+    await deleteMessage(selectedMessage.value.id, deleteForBoth.value, selectedUser.value?.id);
+    
+    const index = messages.value.findIndex(m => m.id === selectedMessage.value!.id);
+    if (index !== -1) {
+      messages.value.splice(index, 1);
+    }
+
+    toast({
+      title: 'Success',
+      description: 'Message deleted successfully'
+    });
+    closeDeleteModal();
+  } catch (error) {
+    toast({
+      title: 'Error',
+      description: `Failed to delete message: ${(error as Error).message}`
     });
   }
 };
@@ -173,10 +201,14 @@ onMounted(async () => {
 // Code for context menu
 const handleContextMenu = (event: MouseEvent, message: IMessage) => {
   event.preventDefault();
-  if (message.sender === currentUser.id && !message.audio_content) {
-    contextMenu.value = { show: true, x: event.clientX, y: event.clientY };
-    selectedMessage.value = message;
-  }
+  contextMenu.value = { 
+    show: true, 
+    x: event.clientX, 
+    y: event.clientY,
+    isCurrentUser: message.sender === currentUser.id,
+    isAudioMessage: !!message.audio_content
+  };
+  selectedMessage.value = message;
 };
 
 const closeContextMenu = () => {
@@ -193,6 +225,17 @@ const closeUpdateModal = () => {
   isUpdateModalOpen.value = false;
   selectedMessage.value = null;
   updatedMessageContent.value = '';
+};
+
+const openDeleteModal = () => {
+  isDeleteModalOpen.value = true;
+  deleteForBoth.value = false;
+  closeContextMenu();
+};
+
+const closeDeleteModal = () => {
+  isDeleteModalOpen.value = false;
+  selectedMessage.value = null;
 };
 
 // Code for searching
@@ -491,7 +534,10 @@ const leave = (el: Element, done: () => void) => {
       :show="contextMenu.show"
       :x="contextMenu.x"
       :y="contextMenu.y"
+      :isCurrentUser="contextMenu.isCurrentUser"
+      :isAudioMessage="contextMenu.isAudioMessage"
       @update="openUpdateModal"
+      @delete="openDeleteModal"
       @close="closeContextMenu"
     />
 
@@ -511,6 +557,30 @@ const leave = (el: Element, done: () => void) => {
         <DialogFooter>
           <Button @click="closeUpdateModal" variant="outline">Cancel</Button>
           <Button @click="handleUpdateMessage" variant="default">Update</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <Dialog v-model:open="isDeleteModalOpen">
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Delete Message</DialogTitle>
+        </DialogHeader>
+        <div class="py-4">
+          <p>Are you sure you want to delete this message?</p>
+          <div class="flex items-center mt-2">
+            <input
+              id="deleteForBoth"
+              v-model="deleteForBoth"
+              type="checkbox"
+              class="mr-2"
+            />
+            <label for="deleteForBoth">Delete for both users</label>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button @click="closeDeleteModal" variant="outline">Cancel</Button>
+          <Button @click="handleDeleteMessage" variant="destructive">Delete</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

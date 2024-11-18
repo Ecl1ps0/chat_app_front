@@ -4,6 +4,7 @@ export interface IMessage {
     image_content: string[];
     audio_content: string;
     sender: string;
+    deleted_for: {[key: string]: number}
     created_at: number;
     updated_at: number;
 }

@@ -5,6 +5,7 @@
       @click="startRecording"
       variant="outline"
       size="icon"
+      type="button"
       :disabled="!isSupported"
     >
       <MicIcon class="h-5 w-5" />
@@ -15,6 +16,7 @@
         @click="stopRecording"
         variant="destructive"
         size="icon"
+        type="button"
       >
         <StopCircleIcon class="h-5 w-5" />
         <span class="sr-only">Stop Recording</span>
